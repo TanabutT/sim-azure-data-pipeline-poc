@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: poc-azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azurite_data:/data
+    environment:
+      AZURITE_ACCOUNTS: devstoreaccount1:sharedsecretkey1
+    healthcheck:
+      test: curl -f http://localhost:10000 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - poc-network
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --debug /data
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: poc-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-data_factory}
+      POSTGRES_USER: ${DB_USER:-df_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./services/storage/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: pg_isready -U ${DB_USER:-df_user}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - poc-network
+
+  spark:
+    build:
+      context: services/databricks
+      dockerfile: Dockerfile
+    container_name: poc-spark
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+    volumes:
+      - ./services/databricks/notebooks:/home/jovyan/work
+      - spark_warehouse:/home/jovyan/spark_warehouse
+      - ./data:/data
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
+      - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY:-sharedsecretkey1}
+      - AZURITE_ENDPOINT=${AZURITE_ENDPOINT:-http://azurite:10000}
+      - SPARK_LOCAL_IP=spark
+    depends_on:
+      azurite:
+        condition: service_healthy
+    networks:
+      - poc-network
+    healthcheck:
+      test: curl -f http://localhost:8888/api || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  data-factory:
+    build:
+      context: services/data-factory
+      dockerfile: Dockerfile
+    container_name: poc-data-factory
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./pipelines:/app/pipelines
+      - ./services/data-factory/logs:/app/logs
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-df_user}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-data_factory}
+      - AZURITE_ENDPOINT=${AZURITE_ENDPOINT:-http://azurite:10000}
+      - AZURITE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
+      - AZURITE_ACCOUNT_KEY=${AZURE_STORAGE_KEY:-sharedsecretkey1}
+      - SPARK_ENDPOINT=${SPARK_ENDPOINT:-http://spark:8888}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      spark:
+        condition: service_healthy
+    networks:
+      - poc-network
+    healthcheck:
+      test: curl -f http://localhost:5000/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  azurite_data:
+  spark_warehouse:
+  postgres_data:
+
+networks:
+  poc-network:
+    driver: bridge

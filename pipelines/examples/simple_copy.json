@@ -1,0 +1,33 @@
+{
+  "name": "SimpleCopyPipeline",
+  "description": "Simple pipeline that copies data from raw to curated zone",
+  "activities": [
+    {
+      "name": "CopyRawToCurated",
+      "type": "CopyActivity",
+      "config": {
+        "source": {
+          "container": "raw",
+          "path": "inbound/sample_data.csv"
+        },
+        "sink": {
+          "container": "curated",
+          "path": "transformed_data/sample_data.csv"
+        }
+      },
+      "dependsOn": []
+    }
+  ],
+  "triggers": [
+    {
+      "type": "Scheduled",
+      "recurrence": {
+        "frequency": "Daily",
+        "interval": 1,
+        "startTime": "2024-01-01T00:00:00Z"
+      }
+    }
+  ],
+  "parameters": {},
+  "variables": {}
+}

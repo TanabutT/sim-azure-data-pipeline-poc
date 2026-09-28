@@ -1,0 +1,70 @@
+{
+  "name": "EndToEndDataPipeline",
+  "description": "Complete pipeline: ingest -> transform -> output",
+  "activities": [
+    {
+      "name": "CopyToProcessing",
+      "type": "CopyActivity",
+      "config": {
+        "source": {
+          "container": "raw",
+          "path": "inbound/sample_data.csv"
+        },
+        "sink": {
+          "container": "curated",
+          "path": "transformed_data/processing.csv"
+        }
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "WaitForProcessing",
+      "type": "WaitActivity",
+      "config": {
+        "duration_seconds": 2
+      },
+      "dependsOn": ["CopyToProcessing"]
+    },
+    {
+      "name": "CopyToOutput",
+      "type": "CopyActivity",
+      "config": {
+        "source": {
+          "container": "curated",
+          "path": "transformed_data/processing.csv"
+        },
+        "sink": {
+          "container": "output",
+          "path": "reports/final_output.csv"
+        }
+      },
+      "dependsOn": ["WaitForProcessing"]
+    }
+  ],
+  "triggers": [
+    {
+      "type": "Scheduled",
+      "recurrence": {
+        "frequency": "Daily",
+        "interval": 1,
+        "startTime": "2024-01-01T00:00:00Z"
+      }
+    }
+  ],
+  "parameters": {
+    "sourceContainer": {
+      "type": "string",
+      "defaultValue": "raw"
+    },
+    "sourcePath": {
+      "type": "string",
+      "defaultValue": "inbound/sample_data.csv"
+    }
+  },
+  "variables": {
+    "processingStatus": {
+      "type": "string",
+      "defaultValue": "initialized"
+    }
+  }
+}
