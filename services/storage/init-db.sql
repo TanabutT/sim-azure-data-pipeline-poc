@@ -1,5 +1,16 @@
 -- PostgreSQL initialization script for Data Factory
 
+-- Ensure the application user exists
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_user WHERE usename = 'df_user') THEN
+    CREATE USER df_user WITH PASSWORD 'postgres';
+  END IF;
+END $$;
+
+-- Grant privileges to df_user for the current database
+ALTER USER df_user WITH CREATEDB;
+
 CREATE TABLE IF NOT EXISTS pipelines (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
@@ -40,5 +51,10 @@ CREATE INDEX IF NOT EXISTS idx_activity_executions_run_id ON activity_executions
 CREATE INDEX IF NOT EXISTS idx_activity_executions_status ON activity_executions(status);
 
 -- Grant permissions to application user
+GRANT CONNECT ON DATABASE data_factory TO df_user;
+GRANT USAGE ON SCHEMA public TO df_user;
+GRANT CREATE ON SCHEMA public TO df_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO df_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO df_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO df_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO df_user;
