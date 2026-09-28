@@ -10,16 +10,8 @@ services:
       - "10002:10002"
     volumes:
       - azurite_data:/data
-    environment:
-      AZURITE_ACCOUNTS: devstoreaccount1:sharedsecretkey1
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:10000', (r) => {if (r.statusCode !== 404) throw new Error(r.statusCode)})"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - poc-network
-    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --queueHost 0.0.0.0 --queuePort 10001 --tableHost 0.0.0.0 --tablePort 10002 --location /data --debug
 
   postgres:
     image: postgres:15-alpine
@@ -62,7 +54,7 @@ services:
       - SPARK_LOCAL_IP=spark
     depends_on:
       azurite:
-        condition: service_healthy
+        condition: service_started
     networks:
       - poc-network
     healthcheck:
@@ -88,20 +80,22 @@ services:
       - AZURITE_ACCOUNT_KEY=${AZURE_STORAGE_KEY:-sharedsecretkey1}
       - SPARK_ENDPOINT=${SPARK_ENDPOINT:-http://spark:8888}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PYTHONUNBUFFERED=1
     depends_on:
       postgres:
         condition: service_healthy
       azurite:
-        condition: service_healthy
+        condition: service_started
       spark:
-        condition: service_healthy
+        condition: service_started
     networks:
       - poc-network
     healthcheck:
-      test: curl -f http://localhost:5000/health || exit 1
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 10s
       retries: 5
+      start_period: 30s
 
 volumes:
   azurite_data:

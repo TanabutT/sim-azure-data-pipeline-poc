@@ -2,11 +2,15 @@ import logging
 import asyncio
 import json
 import os
+import sys
+import time
 from typing import Optional, List
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+sys.path.insert(0, '/app')
 
 from services.common import Config
 from .database import DatabaseManager
