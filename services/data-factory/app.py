@@ -10,12 +10,10 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-sys.path.insert(0, '/app')
-
 from services.common import Config
-from .database import DatabaseManager
-from .orchestrator import PipelineOrchestrator
-from .scheduler import PipelineScheduler
+from services.data_factory.database import DatabaseManager
+from services.data_factory.orchestrator import PipelineOrchestrator
+from services.data_factory.scheduler import PipelineScheduler
 from .models import (
     Pipeline,
     PipelineRun,

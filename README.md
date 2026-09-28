@@ -1,287 +1,174 @@
-# Azure Data Pipeline POC
+# PySpark + Azure Blob Storage POC
 
-Docker-based simulation of Azure data pipeline services including Blob Storage (ADLS Gen2), Azure Databricks, and Azure Data Factory.
+Docker-based PySpark environment with Azure Blob Storage (ADLS Gen2) emulation for data processing.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker Desktop 4.10+ (or Docker + Docker Compose)
+- Docker Desktop 4.10+
 - Python 3.11+ (for CLI tools)
 - Git
-- 4GB+ available disk space
-- 4GB+ available RAM
+- 4GB+ disk space
+- 4GB+ RAM
 
-### Setup (5 minutes)
+### Setup (3 minutes)
 
 ```bash
-# 1. Clone and navigate
-git clone <repo>
+# Clone and navigate
 cd sim-azure-data-pipeline-poc
 
-# 2. Create environment file
+# Create environment file
 cp .env.example .env
 
-# 3. Build containers
+# Build and start
 docker-compose build
-
-# 4. Start services
 docker-compose up -d
 
-# 5. Wait for containers to be healthy
+# Wait for services to be healthy
 docker-compose ps
 
-# 6. Initialize storage
+# Initialize storage
 python scripts/init_storage.py
 
-# 7. Verify setup
+# Verify setup
 python scripts/verify_setup.py
 ```
 
 ### Access Services
 
-Once setup is complete:
-
 - **Jupyter Lab**: http://localhost:8888
-- **Data Factory API**: http://localhost:8000/docs
 - **Azurite Storage**: http://localhost:10000
-- **PostgreSQL**: localhost:5432
+- **Spark UI**: http://localhost:4040
+
+## What's Included
+
+### Azurite (Blob Storage Emulator)
+
+Emulates Azure Blob Storage and ADLS Gen2.
+
+- **Port**: 10000 (Blob), 10001 (Queue), 10002 (Table)
+- Connection String: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=sharedsecretkey1;BlobEndpoint=http://azurite:10000/`
+
+### PySpark + Jupyter (Data Processing)
+
+Apache Spark with Delta Lake support for data transformations.
+
+- **Port**: 8888 (Jupyter Lab)
+- **Port**: 4040 (Spark UI)
+- Libraries: PySpark, Delta Lake, Pandas, NumPy, PyArrow
+
+## Usage
+
+### 1. Open Jupyter Lab
+
+Visit http://localhost:8888 to create notebooks and process data.
+
+### 2. Example: Read from Blob Storage
+
+```python
+from services.databricks import SparkSessionFactory
+
+# Create Spark session
+spark = SparkSessionFactory.create_session()
+
+# Read CSV from Azurite
+df = spark.read.csv(
+    "abfss://raw@devstoreaccount1.dfs.core.windows.net/inbound/sample_data.csv",
+    header=True
+)
+
+# Show data
+df.show()
+```
+
+### 3. Example: Write to Blob Storage
+
+```python
+# Write as Parquet
+df.write.parquet(
+    "abfss://curated@devstoreaccount1.dfs.core.windows.net/output/",
+    mode="overwrite"
+)
+
+# Write as Delta Lake
+df.write.format("delta").save(
+    "abfss://curated@devstoreaccount1.dfs.core.windows.net/delta_output/",
+    mode="overwrite"
+)
+```
+
+### 4. Data Transformations
+
+Create transformation classes in `services/databricks/transformations/`:
+
+```python
+from services.databricks.transformations.base import Transformation
+from pyspark.sql import functions as F
+
+class MyTransform(Transformation):
+    def execute(self, input_df):
+        return input_df.filter(F.col("value") > 100)
+```
 
 ## Project Structure
 
 ```
 sim-azure-data-pipeline-poc/
-├── docker-compose.yml           # Multi-container orchestration
-├── .env.example                 # Environment template
-├── ARCHITECTURE.md              # Detailed architecture guide
-├── README.md                    # This file
+├── docker-compose.yml              # Container orchestration
+├── .env.example                    # Environment template
+├── README.md                        # This file
 │
 ├── services/
-│  ├── common/                   # Shared utilities
+│  ├── common/                      # Shared utilities
 │  │  ├── config.py
 │  │  ├── storage_client.py
 │  │  └── exceptions.py
-│  ├── databricks/               # PySpark + Jupyter
-│  │  ├── Dockerfile
-│  │  ├── requirements.txt
-│  │  ├── spark_factory.py
-│  │  ├── transformations/
-│  │  └── notebooks/
-│  ├── data-factory/             # Orchestration API
-│  │  ├── Dockerfile
-│  │  ├── requirements.txt
-│  │  ├── app.py
-│  │  ├── orchestrator.py
-│  │  ├── activities.py
-│  │  ├── scheduler.py
-│  │  ├── models.py
-│  │  └── database.py
-│  └── storage/
-│     └── init-db.sql            # Database initialization
+│  └── databricks/                  # PySpark + Jupyter
+│     ├── Dockerfile
+│     ├── requirements.txt
+│     ├── spark_factory.py
+│     ├── transformations/
+│     │  ├── base.py
+│     │  ├── data_cleaner.py
+│     │  └── aggregations.py
+│     └── notebooks/
 │
-├── pipelines/
-│  └── examples/
-│     ├── simple_copy.json       # Copy activity example
-│     └── end_to_end.json        # Full pipeline example
-│
-├── data/
+├── data/                           # Data storage
 │  └── sample/
-│     └── sample_data.csv        # Sample input data
+│     └── sample_data.csv
 │
-├── scripts/
-│  ├── init_storage.py           # Initialize storage
-│  └── verify_setup.py           # Verify system
-│
-└── tests/
-   ├── unit/
-   │  └── test_storage_client.py
-   └── integration/
-      └── test_e2e_pipeline.py
+└── scripts/
+   ├── init_storage.py              # Initialize storage
+   └── verify_setup.py              # Verify setup
 ```
 
-## Components
+## Common Tasks
 
-### 1. Azurite (Blob Storage Emulator)
-
-Emulates Azure Blob Storage and ADLS Gen2. Provides REST API compatible with Azure Storage.
-
-- **Port**: 10000 (Blob), 10001 (Queue), 10002 (Table)
-- **Connection String**: `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=sharedsecretkey1;BlobEndpoint=http://azurite:10000/`
-
-### 2. PySpark + Jupyter (Databricks Simulator)
-
-Apache Spark with Delta Lake support for data transformations.
-
-- **Port**: 8888 (Jupyter)
-- **Features**: Interactive notebooks, Delta Lake, Data transformations
-
-### 3. Data Factory API
-
-FastAPI-based orchestration engine for pipeline execution and scheduling.
-
-- **Port**: 8000 (REST API)
-- **API Docs**: http://localhost:8000/docs
-
-### 4. PostgreSQL
-
-Metadata and execution tracking database.
-
-- **Port**: 5432
-- **Database**: data_factory
-
-## Usage
-
-### Create a Pipeline
+### Upload Data to Storage
 
 ```bash
-curl -X POST http://localhost:8000/api/pipelines \
-  -H "Content-Type: application/json" \
-  -d @pipelines/examples/simple_copy.json
+python scripts/upload_data.py --file data/my_file.csv --container raw --path inbound/
 ```
 
-### Run a Pipeline
+### View Storage Contents
 
 ```bash
-curl -X POST http://localhost:8000/api/pipelines/SimpleCopyPipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pipeline_name": "SimpleCopyPipeline",
-    "trigger": "Manual"
-  }'
+python scripts/list_storage.py
 ```
 
-### Check Pipeline Status
+### Run Tests
 
 ```bash
-curl http://localhost:8000/api/runs/1
-```
-
-### List All Pipelines
-
-```bash
-curl http://localhost:8000/api/pipelines
-```
-
-## Development
-
-### Running Tests
-
-```bash
-# Unit tests
-pytest tests/unit/ -v
-
-# Integration tests
-pytest tests/integration/ -v
-
-# All tests with coverage
-pytest tests/ --cov=services --cov-report=html
-```
-
-### Using Jupyter Lab
-
-1. Open http://localhost:8888
-2. Create a new notebook
-3. Use the `SparkSessionFactory` to create Spark sessions
-
-```python
-from services.databricks import SparkSessionFactory
-
-spark = SparkSessionFactory.create_session()
-df = spark.read.csv("wasbs://raw@azurite:10000/inbound/data.csv")
-```
-
-### Adding Custom Transformations
-
-1. Create a new file in `services/databricks/transformations/`
-2. Extend the `Transformation` base class
-3. Implement the `execute()` method
-
-Example:
-```python
-from services.databricks.transformations.base import Transformation
-
-class MyTransform(Transformation):
-    def execute(self, input_df):
-        # Your transformation logic
-        return output_df
-```
-
-## Monitoring
-
-### Database Queries
-
-Connect to PostgreSQL and query execution history:
-
-```sql
-SELECT * FROM pipelines;
-SELECT * FROM runs ORDER BY created_at DESC;
-SELECT * FROM activity_executions WHERE run_id = 1;
+pytest tests/ -v
 ```
 
 ### View Logs
 
 ```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f data-factory
 docker-compose logs -f spark
+docker-compose logs -f azurite
 ```
-
-## Troubleshooting
-
-### Containers won't start
-
-```bash
-# Check Docker status
-docker ps
-docker-compose ps
-
-# View logs
-docker-compose logs
-```
-
-### Can't connect to Azurite
-
-```bash
-# Test connectivity
-curl http://localhost:10000
-
-# Restart Azurite
-docker-compose restart azurite
-```
-
-### Database connection issues
-
-```bash
-# Test PostgreSQL
-psql -h localhost -U df_user -d data_factory
-
-# Check logs
-docker-compose logs postgres
-```
-
-### Jupyter Lab not accessible
-
-```bash
-# Restart Spark container
-docker-compose restart spark
-
-# View logs
-docker-compose logs spark
-```
-
-## Environment Variables
-
-See `.env.example` for all configurable options:
-
-- `AZURE_STORAGE_ACCOUNT` - Storage account name
-- `AZURE_STORAGE_KEY` - Storage account key
-- `AZURITE_ENDPOINT` - Azurite endpoint URL
-- `DATABASE_URL` - PostgreSQL connection string
-- `SPARK_ENDPOINT` - Spark/Jupyter endpoint
-- `LOG_LEVEL` - Application log level (INFO, DEBUG, etc.)
 
 ## Stopping Services
 
@@ -293,24 +180,33 @@ docker-compose down
 docker-compose down -v
 ```
 
-## Architecture Documentation
+## Creating Transformation Jobs
 
-For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
+1. Create a new file in `services/databricks/transformations/`
+2. Extend the `Transformation` base class
+3. Implement the `execute()` method
+
+Example:
+```python
+from services.databricks.transformations.base import Transformation
+from pyspark.sql import functions as F
+
+class FilterByValue(Transformation):
+    def __init__(self, spark, name, min_value):
+        super().__init__(spark, name)
+        self.min_value = min_value
+
+    def execute(self, input_df):
+        return input_df.filter(F.col("value") >= self.min_value)
+```
 
 ## Next Steps
 
-1. Review [ARCHITECTURE.md](ARCHITECTURE.md) for detailed design
-2. Explore pipeline examples in `pipelines/examples/`
-3. Create sample transformations in `services/databricks/transformations/`
-4. Build custom pipelines using the Data Factory API
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-
-- All tests pass: `pytest tests/ -v`
-- Code follows Python conventions
-- Documentation is updated
+1. Open Jupyter Lab (http://localhost:8888)
+2. Create a new notebook
+3. Read data from `abfss://raw@devstoreaccount1.dfs.core.windows.net/`
+4. Transform and write to `abfss://curated@devstoreaccount1.dfs.core.windows.net/`
+5. Check results in Azure Storage Explorer or via API
 
 ## License
 

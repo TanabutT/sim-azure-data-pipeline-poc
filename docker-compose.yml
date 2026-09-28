@@ -13,27 +13,6 @@ services:
     networks:
       - poc-network
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: poc-postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: ${DB_NAME:-data_factory}
-      POSTGRES_USER: ${DB_USER:-df_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./services/storage/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
-    healthcheck:
-      test: pg_isready -U ${DB_USER:-df_user} -d ${DB_NAME:-data_factory}
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - poc-network
-
   spark:
     build:
       context: services/databricks
@@ -53,8 +32,7 @@ services:
       - AZURITE_ENDPOINT=${AZURITE_ENDPOINT:-http://azurite:10000}
       - SPARK_LOCAL_IP=spark
     depends_on:
-      azurite:
-        condition: service_started
+      - azurite
     networks:
       - poc-network
     healthcheck:
@@ -63,44 +41,9 @@ services:
       timeout: 10s
       retries: 5
 
-  data-factory:
-    build:
-      context: services/data-factory
-      dockerfile: Dockerfile
-    container_name: poc-data-factory
-    ports:
-      - "8000:5000"
-    volumes:
-      - ./pipelines:/app/pipelines
-      - ./services/data-factory/logs:/app/logs
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER:-df_user}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-data_factory}
-      - AZURITE_ENDPOINT=${AZURITE_ENDPOINT:-http://azurite:10000}
-      - AZURITE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
-      - AZURITE_ACCOUNT_KEY=${AZURE_STORAGE_KEY:-sharedsecretkey1}
-      - SPARK_ENDPOINT=${SPARK_ENDPOINT:-http://spark:8888}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      postgres:
-        condition: service_healthy
-      azurite:
-        condition: service_started
-      spark:
-        condition: service_started
-    networks:
-      - poc-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
 volumes:
   azurite_data:
   spark_warehouse:
-  postgres_data:
 
 networks:
   poc-network:
