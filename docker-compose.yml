@@ -69,7 +69,7 @@ services:
       dockerfile: Dockerfile
     container_name: poc-data-factory
     ports:
-      - "5000:5000"
+      - "8000:5000"
     volumes:
       - ./pipelines:/app/pipelines
       - ./services/data-factory/logs:/app/logs

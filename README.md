@@ -43,7 +43,7 @@ python scripts/verify_setup.py
 Once setup is complete:
 
 - **Jupyter Lab**: http://localhost:8888
-- **Data Factory API**: http://localhost:5000/docs
+- **Data Factory API**: http://localhost:8000/docs
 - **Azurite Storage**: http://localhost:10000
 - **PostgreSQL**: localhost:5432
 
@@ -119,8 +119,8 @@ Apache Spark with Delta Lake support for data transformations.
 
 FastAPI-based orchestration engine for pipeline execution and scheduling.
 
-- **Port**: 5000 (REST API)
-- **API Docs**: http://localhost:5000/docs
+- **Port**: 8000 (REST API)
+- **API Docs**: http://localhost:8000/docs
 
 ### 4. PostgreSQL
 
@@ -134,7 +134,7 @@ Metadata and execution tracking database.
 ### Create a Pipeline
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines \
+curl -X POST http://localhost:8000/api/pipelines \
   -H "Content-Type: application/json" \
   -d @pipelines/examples/simple_copy.json
 ```
@@ -142,7 +142,7 @@ curl -X POST http://localhost:5000/api/pipelines \
 ### Run a Pipeline
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
+curl -X POST http://localhost:8000/api/pipelines/SimpleCopyPipeline/run \
   -H "Content-Type: application/json" \
   -d '{
     "pipeline_name": "SimpleCopyPipeline",
@@ -153,13 +153,13 @@ curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
 ### Check Pipeline Status
 
 ```bash
-curl http://localhost:5000/api/runs/1
+curl http://localhost:8000/api/runs/1
 ```
 
 ### List All Pipelines
 
 ```bash
-curl http://localhost:5000/api/pipelines
+curl http://localhost:8000/api/pipelines
 ```
 
 ## Development

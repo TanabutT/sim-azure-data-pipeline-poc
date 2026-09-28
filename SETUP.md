@@ -12,7 +12,7 @@ Before starting, ensure you have:
 ✓ Git installed
 ✓ 4GB+ free disk space
 ✓ 4GB+ available RAM
-✓ These ports available: 10000, 8888, 5000, 5432
+✓ These ports available: 10000, 8888, 8000, 5432
 ```
 
 ### Verify Prerequisites
@@ -153,7 +153,7 @@ Setup is ready for use!
 
 Access points:
   - Jupyter Lab: http://localhost:8888
-  - Data Factory API: http://localhost:5000/docs
+  - Data Factory API: http://localhost:8000/docs
   - Azurite Storage: http://localhost:10000
   - PostgreSQL: localhost:5432
 ```
@@ -172,7 +172,7 @@ Once setup is complete, you can access:
 
 ### 2. Data Factory API Documentation
 
-**URL**: http://localhost:5000/docs
+**URL**: http://localhost:8000/docs
 
 Interactive API documentation where you can:
 - View all available endpoints
@@ -202,7 +202,7 @@ psql -h localhost -U df_user -d data_factory -c "SELECT * FROM pipelines;"
 ### Test 1: Create a Pipeline
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines \
+curl -X POST http://localhost:8000/api/pipelines \
   -H "Content-Type: application/json" \
   -d @pipelines/examples/simple_copy.json
 ```
@@ -222,7 +222,7 @@ curl -X POST http://localhost:5000/api/pipelines \
 ### Test 2: List Pipelines
 
 ```bash
-curl http://localhost:5000/api/pipelines
+curl http://localhost:8000/api/pipelines
 ```
 
 **Expected response**:
@@ -237,7 +237,7 @@ curl http://localhost:5000/api/pipelines
 ### Test 3: Trigger Pipeline Execution
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
+curl -X POST http://localhost:8000/api/pipelines/SimpleCopyPipeline/run \
   -H "Content-Type: application/json" \
   -d '{"pipeline_name": "SimpleCopyPipeline", "trigger": "Manual"}'
 ```
@@ -255,7 +255,7 @@ curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
 ### Test 4: Check Run Status
 
 ```bash
-curl http://localhost:5000/api/runs/1
+curl http://localhost:8000/api/runs/1
 ```
 
 ## Running Tests

@@ -147,7 +147,7 @@ AZURITE_ENDPOINT=http://azurite:10000
 - Support for Copy, Spark, and custom activities
 
 **Configuration**:
-- **Port**: 5000 (REST API)
+- **Port**: 8000 (REST API)
 - **Endpoints**:
   - `GET /api/pipelines` — List pipelines
   - `POST /api/pipelines/{id}/run` — Trigger execution

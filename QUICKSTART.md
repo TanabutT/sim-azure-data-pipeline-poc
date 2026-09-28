@@ -51,7 +51,7 @@ python scripts/verify_setup.py
 | Service | URL |
 |---------|-----|
 | **Jupyter Lab** (Data Transformation) | http://localhost:8888 |
-| **Data Factory API** (Orchestration) | http://localhost:5000/docs |
+| **Data Factory API** (Orchestration) | http://localhost:8000/docs |
 | **Azurite Storage** (Blob Storage) | http://localhost:10000 |
 | **PostgreSQL** (Database) | localhost:5432 |
 
@@ -62,7 +62,7 @@ python scripts/verify_setup.py
 ### Create a Pipeline
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines \
+curl -X POST http://localhost:8000/api/pipelines \
   -H "Content-Type: application/json" \
   -d @pipelines/examples/simple_copy.json
 ```
@@ -70,7 +70,7 @@ curl -X POST http://localhost:5000/api/pipelines \
 ### Run the Pipeline
 
 ```bash
-curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
+curl -X POST http://localhost:8000/api/pipelines/SimpleCopyPipeline/run \
   -H "Content-Type: application/json" \
   -d '{"pipeline_name": "SimpleCopyPipeline", "trigger": "Manual"}'
 ```
@@ -78,7 +78,7 @@ curl -X POST http://localhost:5000/api/pipelines/SimpleCopyPipeline/run \
 ### Check Status
 
 ```bash
-curl http://localhost:5000/api/runs/1
+curl http://localhost:8000/api/runs/1
 ```
 
 ---
